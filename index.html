@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>校园谷物期货交易所</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1a1c2c; --panel:#262b44; --panel2:#333c68; --line:#566c86;
+  --txt:#f4f4f4; --dim:#94b0c2; --gold:#f7d154; --green:#38b764; --red:#e43b44;
+  --blue:#41a6f6; --orange:#f77622;
+}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-font-smoothing:none;}
+html,body{background:var(--bg); color:var(--txt);
+  font-family:"Press Start 2P","Courier New",monospace; font-size:12px; line-height:1.7;}
+img,canvas{image-rendering:pixelated;}
+.px-border{
+  border:4px solid var(--line);
+  box-shadow: inset -4px -4px 0 0 rgba(0,0,0,.35), inset 4px 4px 0 0 rgba(255,255,255,.08);
+}
+.px-btn{
+  font-family:inherit; font-size:12px; color:#fff; background:var(--panel2);
+  border:4px solid var(--line); padding:8px 12px; cursor:pointer;
+  box-shadow: inset -4px -4px 0 0 rgba(0,0,0,.35), inset 4px 4px 0 0 rgba(255,255,255,.10);
+  text-shadow:2px 2px 0 rgba(0,0,0,.5);
+}
+.px-btn:hover{filter:brightness(1.15);}
+.px-btn:active{transform:translate(2px,2px); box-shadow:none;}
+.px-btn:disabled{opacity:.4; cursor:not-allowed; transform:none;}
+.px-btn.long{background:#1e7a43; border-color:var(--green);}
+.px-btn.short{background:#8e2731; border-color:var(--red);}
+.px-btn.gold{background:#7a5b16; border-color:var(--gold);}
+.wrap{max-width:1080px; margin:0 auto; padding:14px;}
+header{display:flex; align-items:center; gap:12px; margin-bottom:12px;}
+header h1{font-size:16px; color:var(--gold); text-shadow:3px 3px 0 #000;}
+header .sub{color:var(--dim); font-size:10px;}
+header .sp{flex:1;}
+.grid{display:grid; grid-template-columns:2fr 1fr; gap:12px;}
+@media(max-width:900px){.grid{grid-template-columns:1fr;}}
+.panel{background:var(--panel); padding:12px;}
+.panel h2{font-size:12px; color:var(--blue); margin-bottom:8px; text-shadow:2px 2px 0 #000;}
+#chart{width:100%; height:340px; display:block; background:#14152a;}
+.stats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px;}
+.stat{background:var(--panel2); padding:8px; border:4px solid var(--line);}
+.stat .k{color:var(--dim); font-size:9px;}
+.stat .v{font-size:13px; margin-top:4px;}
+.up{color:var(--green);} .down{color:var(--red);} .gold{color:var(--gold);}
+.pos-box{margin-top:10px; background:var(--panel2); padding:10px; border:4px solid var(--line); min-height:74px;}
+.controls{margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
+.controls .grp{display:flex; gap:6px; align-items:center;}
+.size-btn.on{background:var(--gold); color:#1a1c2c; text-shadow:none;}
+#news{margin-top:10px; min-height:58px; background:#3a2c14; border:4px solid var(--orange); padding:10px; display:none;}
+#news .tag{color:var(--orange); font-size:10px;}
+#news .txt{margin-top:6px; color:var(--gold);}
+#log{list-style:none; max-height:220px; overflow-y:auto; font-size:10px;}
+#log li{padding:4px 2px; border-bottom:2px dashed #3a4160; color:var(--dim);}
+#log li b{color:var(--txt);}
+#log li .p{color:var(--green);} #log li .n{color:var(--red);}
+.modal{position:fixed; inset:0; background:rgba(0,0,0,.82); display:flex;
+  align-items:center; justify-content:center; z-index:10; padding:16px;}
+.modal.hide{display:none;}
+.modal .card{background:var(--panel); padding:24px; text-align:center; max-width:460px; width:100%;}
+.modal h2{color:var(--gold); margin-bottom:10px;}
+.modal p{color:var(--dim); margin:8px 0; font-size:11px;}
+.modal .hint{color:#7c8a9c; font-size:9px; margin-top:10px; line-height:1.6;}
+.modal .acts{display:flex; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap;}
+#nick{font-family:inherit; font-size:12px; padding:10px; width:100%; background:#14152a;
+  color:var(--txt); border:4px solid var(--line); margin:14px 0 0; text-align:center;
+  box-shadow: inset 4px 4px 0 0 rgba(0,0,0,.4);}
+#nick:focus{outline:none; border-color:var(--gold);}
+.ticker{white-space:nowrap; overflow:hidden; color:var(--dim); font-size:9px; margin-top:6px;}
+.blink{animation:blink 1s steps(2) infinite;}
+@keyframes blink{50%{opacity:.25;}}
+a.px-btn{text-decoration:none; display:inline-block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <canvas id="wheat" width="32" height="32" style="width:48px;height:48px"></canvas>
+    <div>
+      <h1>校园谷物期货交易所</h1>
+      <div class="sub">CAMPUS GRAIN FUTURES EXCHANGE · 10x LEVERAGE</div>
+    </div>
+    <div class="sp"></div>
+    <a class="px-btn gold" href="leaderboard.html">🏆 排行榜</a>
+  </header>
+
+  <div class="grid">
+    <section class="panel px-border">
+      <h2>行情 K线 <span id="bar-count" class="gold"></span></h2>
+      <canvas id="chart" class="px-border"></canvas>
+      <div class="ticker" id="ticker">价格中枢 100 · 均值回归 0.03 · 消息概率 20%</div>
+      <div id="news" class="px-border">
+        <div class="tag blink">▶ 市场快讯 BREAKING NEWS</div>
+        <div class="txt" id="news-text"></div>
+      </div>
+      <div class="controls">
+        <div class="grp">
+          <span style="color:var(--dim);font-size:10px">保证金:</span>
+          <button class="px-btn size-btn" data-p="0.25">25%</button>
+          <button class="px-btn size-btn on" data-p="0.5">50%</button>
+          <button class="px-btn size-btn" data-p="0.75">75%</button>
+          <button class="px-btn size-btn" data-p="1">100%</button>
+        </div>
+        <div class="grp">
+          <button id="btn-long" class="px-btn long">▲ 做多</button>
+          <button id="btn-short" class="px-btn short">▼ 做空</button>
+          <button id="btn-close" class="px-btn gold" disabled>■ 平仓</button>
+        </div>
+        <div class="grp">
+          <button id="btn-next" class="px-btn">⏭ 下一根K线</button>
+          <button id="btn-auto" class="px-btn">▶ 自动</button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="panel px-border">
+        <h2>账户 ACCOUNT</h2>
+        <div class="stats" style="grid-template-columns:1fr 1fr;">
+          <div class="stat"><div class="k">最新价格</div><div class="v gold" id="s-price">100.00</div></div>
+          <div class="stat"><div class="k">总资产</div><div class="v" id="s-equity">10000</div></div>
+          <div class="stat"><div class="k">占用保证金</div><div class="v" id="s-margin">0</div></div>
+          <div class="stat"><div class="k">可用资金</div><div class="v" id="s-avail">10000</div></div>
+          <div class="stat"><div class="k">当前持仓</div><div class="v" id="s-pos">无</div></div>
+          <div class="stat"><div class="k">开仓均价</div><div class="v" id="s-entry">-</div></div>
+          <div class="stat" style="grid-column:span 2"><div class="k">浮盈 / 浮亏</div><div class="v" id="s-pnl">0.00</div></div>
+        </div>
+        <div class="pos-box" id="pos-detail">尚未开仓。选择保证金比例后点击 做多 / 做空。</div>
+      </div>
+      <div class="panel px-border" style="margin-top:12px">
+        <h2>成交记录 TRADES</h2>
+        <ul id="log"></ul>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- 开局：昵称 -->
+<div id="start" class="modal">
+  <div class="card px-border">
+    <h2>🥐 校园谷物期货交易所</h2>
+    <p>初始本金 10000 · 10倍杠杆 · 30根K线后结算</p>
+    <input id="nick" maxlength="12" autocomplete="off" placeholder="输入昵称（上榜用）">
+    <div class="acts">
+      <button class="px-btn gold" id="btn-start">开 始 交 易</button>
+    </div>
+    <div class="hint">昵称会随最终总资产一起进入排行榜；留空则显示「匿名农场主」</div>
+  </div>
+</div>
+
+<!-- 结算 / 爆仓 -->
+<div id="overlay" class="modal hide">
+  <div class="card px-border">
+    <h2 id="ov-title">结算</h2>
+    <p id="ov-body"></p>
+    <p id="ov-submit" style="color:#7c8a9c;font-size:10px;margin-top:10px"></p>
+    <div class="acts">
+      <button class="px-btn gold" onclick="location.reload()">↻ 再来一局</button>
+      <a class="px-btn" href="leaderboard.html">🏆 看排行榜</a>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+/* =========================================================
+ * 核心配置
+ * =======================================================*/
+const CFG = {
+  CENTER: 100,
+  REVERT: 0.03,
+  NOISE_MIN: 1, NOISE_MAX: 3,
+  NEWS_P: 0.2,
+  NEWS_TRUE_P: 0.7,
+  NEWS_MIN: 5, NEWS_MAX: 8,
+  INIT_CASH: 10000,
+  LEVERAGE: 10,
+  FEE_RATE: 0.0005,
+  TOTAL_BARS: 30,
+};
+
+const S = {
+  price: CFG.CENTER,
+  cash: CFG.INIT_CASH,
+  margin: 0,
+  pos: null,
+  candles: [],
+  bar: 0,
+  trades: 0,
+  over: false,
+  auto: null,
+  sizePct: 0.5,
+  nick: '',
+  started: false,
+};
+
+const $ = id => document.getElementById(id);
+
+/* =========================================================
+ * 价格引擎
+ * =======================================================*/
+const GOOD_NEWS = [
+  '突发！主产区遭遇严重旱灾，谷物或大幅减产！',
+  '寒潮突袭种植带，市场担忧谷物欠收！',
+  '出口订单暴增，食堂囤粮需求激增！',
+];
+const BAD_NEWS = [
+  '喜讯！今年谷物大丰收，产量创历史新高！',
+  '仓库爆满！陈粮抛售压力骤增！',
+  '需求疲软，食堂采购量大幅下滑！',
+];
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+function nextPrice() {
+  const pull = CFG.REVERT * (CFG.CENTER - S.price);
+  const noise = (Math.random() < .5 ? -1 : 1) * rnd(CFG.NOISE_MIN, CFG.NOISE_MAX);
+  let shock = 0, news = null;
+
+  if (Math.random() < CFG.NEWS_P) {
+    const bullish = Math.random() < .5;
+    const isTrue = Math.random() < CFG.NEWS_TRUE_P;
+    const mag = rnd(CFG.NEWS_MIN, CFG.NEWS_MAX);
+    shock = (bullish === isTrue) ? mag : -mag;
+    news = { text: pick(bullish ? GOOD_NEWS : BAD_NEWS), bullish };
+  }
+  return { price: Math.max(1, S.price + pull + noise + shock), news };
+}
+
+/* =========================================================
+ * 交易
+ * =======================================================*/
+function floatPnl() {
+  if (!S.pos) return 0;
+  const d = S.pos.side === 'long' ? S.price - S.pos.entry : S.pos.entry - S.price;
+  return d * S.pos.qty;
+}
+const equity = () => S.cash + S.margin + floatPnl();
+const avail = () => S.cash + floatPnl();
+
+function openPos(side) {
+  if (S.pos || S.over || !S.started) return;
+  // 预留手续费，避免 100% 仓位时现金被手续费打穿
+  const maxMargin = Math.floor(S.cash / (1 + CFG.LEVERAGE * CFG.FEE_RATE)) - 1;
+  const margin = Math.min(Math.floor(S.cash * S.sizePct), maxMargin);
+  if (margin < 10) { log('可用资金不足，无法开仓', 'n'); return; }
+
+  const notional = margin * CFG.LEVERAGE;
+  const fee = notional * CFG.FEE_RATE;
+  S.cash -= margin + fee;
+  S.margin = margin;
+  S.pos = { side, entry: S.price, qty: notional / S.price, margin };
+  log(`<b>${side === 'long' ? '做多' : '做空'}</b> 开仓 @${S.price.toFixed(2)} 保证金${margin} 手续费${fee.toFixed(2)}`,
+    side === 'long' ? 'p' : 'n');
+  GF.track(side === 'long' ? 'open_long' : 'open_short', margin);
+  render();
+}
+
+function closePos(reason) {
+  if (!S.pos) return;
+  const pnl = floatPnl();
+  const fee = S.pos.qty * S.price * CFG.FEE_RATE;
+  S.cash += S.pos.margin + pnl - fee;
+  S.trades++;
+  log(`<b>平仓${reason ? `(${reason})` : ''}</b> @${S.price.toFixed(2)} 盈亏 <span class="${pnl >= 0 ? 'p' : 'n'}">${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}</span> 手续费${fee.toFixed(2)}`,
+    pnl >= 0 ? 'p' : 'n');
+  S.pos = null; S.margin = 0;
+  GF.track('close_trade', Math.round(pnl));
+  render();
+}
+
+/* =========================================================
+ * K线推进
+ * =======================================================*/
+function tick() {
+  if (S.over || !S.started) return;
+  const o = S.price;
+  const { price, news } = nextPrice();
+  S.price = price;
+  const spread = rnd(0.5, 2);
+  S.candles.push({
+    o, c: price,
+    h: Math.max(o, price) + spread * Math.random(),
+    l: Math.min(o, price) - spread * Math.random(),
+  });
+  S.bar++;
+
+  if (news) showNews(news); else $('news').style.display = 'none';
+
+  if (S.pos && avail() <= 0) {
+    log('<b>⚠ 可用资金归零，触发强制平仓！</b>', 'n');
+    closePos('爆仓');
+    GF.track('blowup', Math.round(equity()));
+    if (S.cash <= 0) { finish('爆仓出局', '可用资金耗尽，交易所对你执行了强制平仓。'); return; }
+  }
+
+  if (S.bar >= CFG.TOTAL_BARS) {
+    if (S.pos) closePos('到期强平');
+    finish('周期结束', '30根K线周期已满，进入最终结算。');
+    return;
+  }
+  render();
+}
+
+/* =========================================================
+ * 结算 & 上榜
+ * =======================================================*/
+async function finish(title, desc) {
+  if (S.over) return;
+  S.over = true;
+  stopAuto();
+  const e = equity();
+  const r = (e - CFG.INIT_CASH) / CFG.INIT_CASH * 100;
+
+  $('ov-title').textContent = title;
+  $('ov-body').innerHTML =
+    `${desc}<br><br>最终总资产：<b class="gold">${e.toFixed(2)}</b><br>` +
+    `收益率：<b class="${r >= 0 ? 'up' : 'down'}">${r >= 0 ? '+' : ''}${r.toFixed(2)}%</b><br>` +
+    `交易次数：${S.trades}`;
+  $('overlay').classList.remove('hide');
+  render();
+
+  GF.track('game_over', `${title}|${Math.round(e)}|${S.trades}`);
+
+  $('ov-submit').textContent = '正在上传成绩…';
+  const res = await GF.submitScore({
+    nickname: S.nick || '匿名农场主',
+    final_equity: +e.toFixed(2),
+    return_pct: +r.toFixed(2),
+    blown: title === '爆仓出局',
+    trades: S.trades,
+    bars: S.bar,
+  });
+
+  if (res.ok) {
+    $('ov-submit').innerHTML = '✅ 成绩已上传，点「看排行榜」查看排名';
+    return;
+  }
+  if (res.local) {
+    $('ov-submit').innerHTML = '📁 已记录到本机浏览器（未配置云端排行榜，别人看不到）';
+    return;
+  }
+  $('ov-submit').innerHTML = '⚠ 上传失败：' + (res.error || '未知错误');
+}
+
+/* =========================================================
+ * 渲染
+ * =======================================================*/
+function drawChart() {
+  const cv = $('chart'), ctx = cv.getContext('2d');
+  const W = cv.width = cv.clientWidth * 2, H = cv.height = 340 * 2;
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#14152a'; ctx.fillRect(0, 0, W, H);
+
+  const all = S.candles.flatMap(c => [c.h, c.l]);
+  const lo = Math.min(...all, S.price, CFG.CENTER) - 2;
+  const hi = Math.max(...all, S.price, CFG.CENTER) + 2;
+  const y = v => Math.round(H - (v - lo) / (hi - lo) * (H - 40) - 20);
+  const n = Math.max(S.candles.length, CFG.TOTAL_BARS);
+  const bw = Math.floor(W / n), bwBody = Math.max(4, Math.floor(bw * 0.6));
+
+  ctx.strokeStyle = '#566c86'; ctx.setLineDash([8, 8]); ctx.beginPath();
+  ctx.moveTo(0, y(CFG.CENTER)); ctx.lineTo(W, y(CFG.CENTER)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#94b0c2'; ctx.font = '20px monospace';
+  ctx.fillText('中枢100', 8, y(CFG.CENTER) - 8);
+
+  S.candles.forEach((c, i) => {
+    const x = i * bw + Math.floor(bw / 2);
+    const up = c.c >= c.o;
+    ctx.strokeStyle = ctx.fillStyle = up ? '#38b764' : '#e43b44';
+    ctx.beginPath(); ctx.moveTo(x, y(c.h)); ctx.lineTo(x, y(c.l)); ctx.lineWidth = 4; ctx.stroke();
+    const top = y(Math.max(c.o, c.c)), bot = y(Math.min(c.o, c.c));
+    ctx.fillRect(x - bwBody / 2, top, bwBody, Math.max(4, bot - top));
+  });
+
+  if (S.pos) {
+    ctx.strokeStyle = '#f7d154'; ctx.setLineDash([4, 4]); ctx.beginPath();
+    ctx.moveTo(0, y(S.pos.entry)); ctx.lineTo(W, y(S.pos.entry)); ctx.stroke(); ctx.setLineDash([]);
+  }
+}
+
+function fmt(v) { return v.toFixed(2); }
+
+function render() {
+  $('s-price').textContent = fmt(S.price);
+  $('s-equity').textContent = fmt(equity());
+  $('s-margin').textContent = fmt(S.margin);
+  $('s-avail').textContent = fmt(avail());
+  $('bar-count').textContent = `(${S.bar}/${CFG.TOTAL_BARS})`;
+  const pnl = floatPnl();
+  $('s-pnl').textContent = (pnl >= 0 ? '+' : '') + fmt(pnl);
+  $('s-pnl').className = 'v ' + (pnl >= 0 ? 'up' : 'down');
+  $('s-pos').textContent = S.pos ? (S.pos.side === 'long' ? '多仓' : '空仓') : '无';
+  $('s-pos').className = 'v ' + (S.pos ? (S.pos.side === 'long' ? 'up' : 'down') : '');
+  $('s-entry').textContent = S.pos ? fmt(S.pos.entry) : '-';
+  $('pos-detail').innerHTML = S.pos
+    ? `${S.pos.side === 'long' ? '▲ 多仓' : '▼ 空仓'} ${S.pos.qty.toFixed(1)} 单位谷物 @ ${fmt(S.pos.entry)}<br>
+       名义价值 ${fmt(S.pos.qty * S.price)} · 保证金 ${fmt(S.pos.margin)} · 强平线：可用资金 ≤ 0`
+    : '尚未开仓。选择保证金比例后点击 做多 / 做空。';
+  $('btn-long').disabled = $('btn-short').disabled = !!S.pos || S.over;
+  $('btn-close').disabled = !S.pos || S.over;
+  $('btn-next').disabled = S.over;
+  drawChart();
+}
+
+function log(html) {
+  const li = document.createElement('li');
+  li.innerHTML = `<b>#${S.bar}</b> ${html}`;
+  $('log').prepend(li);
+}
+
+let newsTimer = null;
+function showNews(news) {
+  $('news-text').textContent = news.text;
+  $('news').style.display = 'block';
+  log(`📰 快讯：${news.text}`);
+  clearTimeout(newsTimer);
+  newsTimer = setTimeout(() => $('news').style.display = 'none', 6000);
+}
+
+/* =========================================================
+ * 像素麦穗
+ * =======================================================*/
+function drawWheat() {
+  const c = $('wheat').getContext('2d');
+  const px = (x, y, col) => { c.fillStyle = col; c.fillRect(x, y, 1, 1); };
+  const G = '#f7d154', D = '#c98f1b', L = '#73bed3';
+  for (let i = 0; i < 14; i++) px(16, 17 + i, D);
+  [[15, 5], [17, 5], [14, 7], [18, 7], [15, 9], [17, 9],
+   [14, 11], [18, 11], [15, 13], [17, 13], [16, 3], [16, 15]]
+    .forEach(([x, y]) => { px(x, y, G); px(x, y + 1, D); });
+  px(19, 17, L); px(20, 18, L); px(13, 17, L); px(12, 18, L);
+}
+
+/* =========================================================
+ * 事件
+ * =======================================================*/
+document.querySelectorAll('.size-btn').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.size-btn').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); S.sizePct = parseFloat(b.dataset.p);
+});
+$('btn-long').onclick = () => openPos('long');
+$('btn-short').onclick = () => openPos('short');
+$('btn-close').onclick = () => closePos();
+$('btn-next').onclick = tick;
+
+function stopAuto() { clearInterval(S.auto); S.auto = null; $('btn-auto').textContent = '▶ 自动'; }
+$('btn-auto').onclick = () => {
+  if (!S.started) return;
+  if (S.auto) { stopAuto(); return; }
+  S.auto = setInterval(() => { if (!S.over) tick(); else stopAuto(); }, 1200);
+  $('btn-auto').textContent = '⏸ 停止';
+};
+
+document.addEventListener('keydown', e => {
+  if (!S.started || S.over) return;
+  if (e.key === ' ') { e.preventDefault(); tick(); }
+  if (e.key === '1') openPos('long');
+  if (e.key === '2') openPos('short');
+  if (e.key === '3') closePos();
+});
+
+/* 开局 */
+$('nick').value = GF.getNick();
+function startGame() {
+  S.nick = $('nick').value.trim().slice(0, 12);
+  GF.setNick(S.nick);
+  S.started = true;
+  $('start').classList.add('hide');
+  GF.track('game_start', S.nick || 'anon');
+  log(`欢迎，<b>${S.nick || '匿名农场主'}</b>！初始本金 10000，10倍杠杆，30根K线后结算。`);
+  render();
+}
+$('btn-start').onclick = startGame;
+$('nick').addEventListener('keydown', e => { if (e.key === 'Enter') startGame(); });
+
+/* 初始化：预置 5 根历史K线 */
+GF.initStats();
+drawWheat();
+S.candles.push({ o: 97.5, c: 98.2, h: 99.4, l: 96.9 });
+S.candles.push({ o: 98.2, c: 99.1, h: 99.8, l: 97.7 });
+S.candles.push({ o: 99.1, c: 98.3, h: 100.2, l: 98.0 });
+S.candles.push({ o: 98.3, c: 100.4, h: 100.9, l: 98.1 });
+S.candles.push({ o: 100.4, c: 100.1, h: 101.3, l: 99.6 });
+S.price = 100.1;
+render();
+</script>
+</body>
+</html>

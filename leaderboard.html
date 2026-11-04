@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排行榜 · 校园谷物期货交易所</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1a1c2c; --panel:#262b44; --panel2:#333c68; --line:#566c86;
+  --txt:#f4f4f4; --dim:#94b0c2; --gold:#f7d154; --green:#38b764; --red:#e43b44;
+  --blue:#41a6f6; --orange:#f77622;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{background:var(--bg); color:var(--txt);
+  font-family:"Press Start 2P","Courier New",monospace; font-size:12px; line-height:1.7;}
+.px-border{border:4px solid var(--line);
+  box-shadow: inset -4px -4px 0 0 rgba(0,0,0,.35), inset 4px 4px 0 0 rgba(255,255,255,.08);}
+.px-btn{font-family:inherit; font-size:12px; color:#fff; background:var(--panel2);
+  border:4px solid var(--line); padding:8px 12px; cursor:pointer; text-decoration:none;
+  display:inline-block; text-shadow:2px 2px 0 rgba(0,0,0,.5);
+  box-shadow: inset -4px -4px 0 0 rgba(0,0,0,.35), inset 4px 4px 0 0 rgba(255,255,255,.10);}
+.px-btn:hover{filter:brightness(1.15);}
+.px-btn:active{transform:translate(2px,2px); box-shadow:none;}
+.px-btn.gold{background:#7a5b16; border-color:var(--gold);}
+.wrap{max-width:900px; margin:0 auto; padding:14px;}
+header{display:flex; align-items:center; gap:12px; margin-bottom:12px;}
+header h1{font-size:15px; color:var(--gold); text-shadow:3px 3px 0 #000;}
+header .sub{color:var(--dim); font-size:9px; margin-top:4px;}
+header .sp{flex:1;}
+.panel{background:var(--panel); padding:12px; margin-bottom:12px;}
+.panel h2{font-size:12px; color:var(--blue); margin-bottom:10px; text-shadow:2px 2px 0 #000;}
+.cards{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+@media(max-width:700px){.cards{grid-template-columns:repeat(2,1fr);}}
+.card{background:var(--panel2); padding:10px; border:4px solid var(--line);}
+.card .k{color:var(--dim); font-size:9px;}
+.card .v{font-size:14px; margin-top:6px;}
+table{width:100%; border-collapse:collapse; font-size:10px;}
+th,td{padding:8px 6px; text-align:left; border-bottom:2px dashed #3a4160;}
+th{color:var(--blue); font-size:9px;}
+td.num{text-align:right;}
+tbody tr:hover{background:rgba(65,166,246,.08);}
+.up{color:var(--green);} .down{color:var(--red);} .gold{color:var(--gold);} .dim{color:var(--dim);}
+.rank1{color:var(--gold);} .rank2{color:#94b0c2;} .rank3{color:var(--orange);}
+.note{background:#3a2c14; border:4px solid var(--orange); padding:10px; font-size:10px;
+  color:var(--gold); line-height:1.8; margin-bottom:12px; display:none;}
+.empty{color:var(--dim); text-align:center; padding:24px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>🏆 校园谷物排行榜</h1>
+      <div class="sub">GRAIN FUTURES LEADERBOARD</div>
+    </div>
+    <div class="sp"></div>
+    <a class="px-btn gold" href="index.html">← 回交易所</a>
+    <button class="px-btn" id="btn-refresh">↻ 刷新</button>
+  </header>
+
+  <div class="note" id="note"></div>
+
+  <div class="panel px-border">
+    <h2>数据概览 STATS</h2>
+    <div class="cards">
+      <div class="card"><div class="k">玩家总数</div><div class="v gold" id="c-total">-</div></div>
+      <div class="card"><div class="k">平均总资产</div><div class="v" id="c-avg">-</div></div>
+      <div class="card"><div class="k">最高总资产</div><div class="v up" id="c-max">-</div></div>
+      <div class="card"><div class="k">爆仓率</div><div class="v down" id="c-blow">-</div></div>
+    </div>
+  </div>
+
+  <div class="panel px-border">
+    <h2>战绩榜 TOP 50</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:44px">名次</th>
+          <th>昵称</th>
+          <th class="num">总资产</th>
+          <th class="num">收益率</th>
+          <th class="num">交易</th>
+          <th>结果</th>
+          <th>时间</th>
+        </tr>
+      </thead>
+      <tbody id="rows">
+        <tr><td colspan="7" class="empty">加载中…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const fmt = v => Number(v).toFixed(2);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function when(iso) {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  if (isNaN(d)) return '-';
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+async function load() {
+  $('rows').innerHTML = '<tr><td colspan="7" class="empty">加载中…</td></tr>';
+  let list;
+  try {
+    list = await GF.fetchScores(100);
+  } catch (e) {
+    $('rows').innerHTML = `<tr><td colspan="7" class="empty">读取失败：${esc(e.message)}</td></tr>`;
+    $('note').style.display = 'block';
+    $('note').innerHTML = '⚠ 无法读取云端排行榜。请检查 config.js 里的 SUPABASE_URL / SUPABASE_ANON_KEY，<br>以及 Supabase 表是否开启了 SELECT 权限。';
+    return;
+  }
+
+  // 同昵称只保留最好成绩
+  const best = {};
+  list.forEach(r => {
+    const k = (r.nickname || '匿名农场主').trim() || '匿名农场主';
+    if (!best[k] || Number(r.final_equity) > Number(best[k].final_equity)) best[k] = r;
+  });
+  const rows = Object.values(best)
+    .sort((a, b) => Number(b.final_equity) - Number(a.final_equity))
+    .slice(0, 50);
+
+  if (!GF.hasBoard()) {
+    $('note').style.display = 'block';
+    $('note').innerHTML = '📁 当前为<strong>本机模式</strong>：只显示这台浏览器里玩过的记录。<br>' +
+      '在 config.js 填入 Supabase 地址与 Key 后，即可看到所有玩家的成绩。';
+  }
+
+  $('rows').innerHTML = rows.length ? rows.map((r, i) => {
+    const eq = Number(r.final_equity);
+    const ret = Number(r.return_pct);
+    const cls = i === 0 ? 'rank1' : i === 1 ? 'rank2' : i === 2 ? 'rank3' : '';
+    return `<tr>
+      <td class="${cls}">${i === 0 ? '①' : i === 1 ? '②' : i === 2 ? '③' : i + 1}</td>
+      <td>${esc(r.nickname || '匿名农场主')}</td>
+      <td class="num gold">${fmt(eq)}</td>
+      <td class="num ${ret >= 0 ? 'up' : 'down'}">${ret >= 0 ? '+' : ''}${fmt(ret)}%</td>
+      <td class="num dim">${r.trades == null ? '-' : r.trades}</td>
+      <td>${r.blown ? '<span class="down">爆仓</span>' : '<span class="up">存活</span>'}</td>
+      <td class="dim">${when(r.created_at)}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" class="empty">还没有人上榜，快去玩一局吧。</td></tr>';
+
+  const all = Object.values(best);
+  $('c-total').textContent = all.length;
+  if (all.length) {
+    const avg = all.reduce((s, r) => s + Number(r.final_equity), 0) / all.length;
+    const blow = all.filter(r => r.blown).length / all.length * 100;
+    $('c-avg').textContent = fmt(avg);
+    $('c-max').textContent = fmt(Math.max(...all.map(r => Number(r.final_equity))));
+    $('c-blow').textContent = blow.toFixed(0) + '%';
+  } else {
+    $('c-avg').textContent = $('c-max').textContent = $('c-blow').textContent = '-';
+  }
+}
+
+$('btn-refresh').onclick = load;
+GF.initStats();
+load();
+</script>
+</body>
+</html>
