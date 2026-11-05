@@ -56,6 +56,29 @@ header .sp{flex:1;}
 .marq{position:relative; flex:1; height:20px; overflow:hidden;}
 .marq-text{position:absolute; top:2px; left:0; white-space:nowrap; color:var(--gold); font-size:10px; will-change:transform;}
 .pending{font-size:9px; color:#ffb86b; white-space:nowrap; animation:blink 1s steps(2) infinite;}
+.weather-bar{margin-top:10px; background:#17283a; border:4px solid var(--blue); padding:8px 10px; font-size:10px;
+  display:flex; flex-direction:column; gap:7px;}
+.wx-top{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+.wx-main{display:flex; align-items:center; gap:8px;}
+.wx-chip{display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px;
+  font-size:9px; color:#14152a; border:2px solid rgba(0,0,0,.4); flex:none;}
+.wx-chip.big{width:24px; height:24px; font-size:11px;}
+.wx-streak{color:var(--dim);}
+.wx-fc{color:#9fd8ff; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+.wx-fc em{font-style:normal; color:var(--dim); font-size:9px;}
+.wx-fc b{font-weight:normal;}
+.wx-fc .prob{white-space:nowrap;}
+.wx-hist{display:flex; align-items:center; gap:8px; border-top:2px dashed #2c4460; padding-top:6px;}
+.wx-hist-label{color:var(--dim); font-size:9px; white-space:nowrap;}
+.wx-hist-list{display:flex; align-items:center; gap:2px; font-size:15px; line-height:1; flex-wrap:wrap;}
+.mode-row{display:flex; gap:8px; margin-top:14px;}
+.mode-card{flex:1; text-align:left; padding:10px; background:var(--panel2);
+  border:4px solid var(--line); cursor:pointer;}
+.mode-card.on{border-color:var(--gold); background:#3d3517;}
+.mode-card b{display:block; color:var(--gold); font-size:11px; margin-bottom:4px;}
+.mode-card span{font-size:9px; color:var(--dim); line-height:1.7; display:block;}
+.badge{display:inline-block; margin-left:8px; padding:1px 8px; border:2px solid var(--gold);
+  color:var(--gold); font-size:9px; vertical-align:middle;}
 #log{list-style:none; max-height:220px; overflow-y:auto; font-size:10px;}
 #log li{padding:4px 2px; border-bottom:2px dashed #3a4160; color:var(--dim);}
 #log li b{color:var(--txt);}
@@ -98,7 +121,7 @@ a.px-btn{text-decoration:none; display:inline-block;}
   <header>
     <canvas id="wheat" width="32" height="32" style="width:48px;height:48px"></canvas>
     <div>
-      <h1>校园谷物期货交易所</h1>
+      <h1>校园谷物期货交易所<span class="badge" id="mode-badge">探索模式</span></h1>
       <div class="sub">CAMPUS GRAIN FUTURES EXCHANGE · 10x LEVERAGE</div>
     </div>
     <div class="sp"></div>
@@ -111,10 +134,26 @@ a.px-btn{text-decoration:none; display:inline-block;}
     <section class="panel px-border">
       <h2>行情 K线 <span id="bar-count" class="gold"></span></h2>
       <canvas id="chart" class="px-border"></canvas>
-      <div class="news-bar px-border">
+      <div class="news-bar px-border" id="news-bar">
         <span class="tag blink">📰 行情快讯</span>
         <div class="marq" id="marq"><div class="marq-text" id="marq-text">暂无消息，价格围绕中枢 100 波动…</div></div>
         <span class="pending" id="news-pending" style="display:none">⏳ 下根K线生效</span>
+      </div>
+      <div class="weather-bar px-border" id="weather-bar" style="display:none">
+        <div class="wx-top">
+          <div class="wx-main">
+            <span class="wx-chip big" id="wx-icon">晴</span>
+            <span class="wx-streak" id="wx-streak">连续 1 天</span>
+          </div>
+          <div class="wx-fc">
+            <em>下一根预报</em>
+            <b id="wx-fc"></b>
+          </div>
+        </div>
+        <div class="wx-hist">
+          <span class="wx-hist-label">近期天气 →</span>
+          <span class="wx-hist-list" id="wx-history"></span>
+        </div>
       </div>
       <div class="controls">
         <div class="grp">
@@ -173,12 +212,22 @@ a.px-btn{text-decoration:none; display:inline-block;}
       <p class="small">游戏目标：在 30 根 K 线的周期结束时，尽可能让总资产变多。<br>
          初始本金 10000 · 固定 10 倍杠杆 · 同时只能持有一个仓位</p>
     </div>
+    <div class="mode-row">
+      <div class="mode-card on" data-mode="explore">
+        <b>🎓 探索模式</b>
+        <span>存在滚动快讯栏，利好必涨，利空必跌，新手友好</span>
+      </div>
+      <div class="mode-card" data-mode="growth">
+        <b>🌱 成长模式</b>
+        <span>存在天气系统，天气影响谷物价格，高手可选</span>
+      </div>
+    </div>
     <input id="nick" maxlength="12" autocomplete="off" placeholder="输入昵称（上榜用）">
     <div class="acts">
       <button class="px-btn" id="btn-guide-start">📖 先看新手引导</button>
       <button class="px-btn gold" id="btn-start">开 始 交 易</button>
     </div>
-    <div class="hint">首次开始会先弹出 9 步新手引导，看完后才会解锁下单按钮</div>
+    <div class="hint">首次开始会先弹出新手引导，看完后才会解锁下单按钮</div>
   </div>
 </div>
 
@@ -230,8 +279,8 @@ const CFG = {
   REVERT: 0.03,
   NOISE_MIN: 1, NOISE_MAX: 3,
   NEWS_P: 0.2,
-  NEWS_TRUE_P: 0.7,
   NEWS_MIN: 5, NEWS_MAX: 8,
+  WX_PULL: 0.6,        // 天气根里均值回归的权重
   INIT_CASH: 10000,
   LEVERAGE: 10,
   FEE_RATE: 0.0005,
@@ -255,6 +304,10 @@ const S = {
   pending: null,        // 已推送、下一根K线才生效的消息
   newsFeed: [],         // 快讯历史（滚动栏展示）
   tutorialDone: false,
+  mode: 'explore',      // explore=探索模式 growth=成长模式
+  weather: 'sunny',     // 成长模式当前天气
+  weatherStreak: 1,     // 当前天气已连续天数
+  forecast: null,       // 下一根K线的天气预报
 };
 
 const $ = id => document.getElementById(id);
@@ -275,14 +328,61 @@ const BAD_NEWS = [
 const rnd = (a, b) => a + Math.random() * (b - a);
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
-/* 生成一条消息：利好/利空由玩家判断，真假与方向由程序内部决定 */
+/* 生成一条消息：利好必涨、利空必跌，一条消息只对应一个方向 */
 function genNews() {
   const bullish = Math.random() < .5;                 // 利好 or 利空
-  const isTrue = Math.random() < CFG.NEWS_TRUE_P;     // 真消息 or 谣言
   const mag = rnd(CFG.NEWS_MIN, CFG.NEWS_MAX);
-  const shock = (bullish === isTrue) ? mag : -mag;    // 利好真→涨，利好谣言→跌，反之亦然
+  const shock = bullish ? mag : -mag;                 // 方向固定，不再有谣言
   return { text: pick(bullish ? GOOD_NEWS : BAD_NEWS), bullish, shock };
 }
+
+/* =========================================================
+ * 成长模式：天气系统
+ * 天气 → 收割 / 存储 / 运输 → 供应 → 价格
+ * =======================================================*/
+const WEATHER = {
+  sunny: { name: '晴天', ch: '晴', color: '#f7d154', min: -2.8, max: -2.2 },
+  cloudy: { name: '阴天', ch: '阴', color: '#94b0c2', min: -0.6, max: 0.6 },
+  snow: { name: '雨雪', ch: '雪', color: '#73bed3', min: 2.2, max: 2.8 },
+};
+const WX_KEYS = ['sunny', 'cloudy', 'snow'];
+// 连续同种天气越久，越容易转变（按连续天数取的维持概率）
+const WX_STAY = {
+  sunny: [0.82, 0.66, 0.50, 0.36],
+  cloudy: [0.74, 0.56, 0.38, 0.28],
+  snow: [0.62, 0.42, 0.26, 0.26],
+};
+// 发生转变时，转成其他天气的分配
+const WX_SWITCH = {
+  sunny: [['cloudy', 0.55], ['snow', 0.45]],
+  cloudy: [['sunny', 0.58], ['snow', 0.42]],
+  snow: [['sunny', 0.62], ['cloudy', 0.38]],
+};
+
+/* 当前天气 + 连续天数 → 下一根各天气的概率 */
+function wxProbs(cur, streak) {
+  const arr = WX_STAY[cur];
+  const stay = arr[Math.min(streak - 1, arr.length - 1)];
+  const p = { sunny: 0, cloudy: 0, snow: 0 };
+  p[cur] = stay;
+  WX_SWITCH[cur].forEach(([k, w]) => { p[k] = (1 - stay) * w; });
+  return p;
+}
+
+/* 生成本根的预报：给出概率最高的天气与概率 */
+function makeForecast() {
+  const probs = wxProbs(S.weather, S.weatherStreak);
+  let best = S.weather, bp = -1;
+  WX_KEYS.forEach(k => { if (probs[k] > bp) { bp = probs[k]; best = k; } });
+  return { probs, best, p: bp };
+}
+
+function rollWeather(probs) {
+  let r = Math.random(), acc = 0;
+  for (const k of WX_KEYS) { acc += probs[k]; if (r <= acc) return k; }
+  return 'sunny';
+}
+
 
 /* =========================================================
  * 交易
@@ -332,16 +432,28 @@ function closePos(reason) {
 function tick() {
   if (S.over || !S.started) return;
   const o = S.price;
-
-  // 1) 上一根推送的消息，在本根K线兑现（玩家先看到消息，再走K线）
-  const shock = S.pending ? S.pending.shock : 0;
-  S.pending = null;
-
-  // 2) 新价格 = 现价 + 均值回归拉力 + 随机噪声 + 消息扰动
   const pull = CFG.REVERT * (CFG.CENTER - S.price);
   const noise = (Math.random() < .5 ? -1 : 1) * rnd(CFG.NOISE_MIN, CFG.NOISE_MAX);
-  const price = Math.max(1, S.price + pull + noise + shock);
+  let delta, wxNow = null;
 
+  if (S.mode === 'growth') {
+    // 天气只提供方向倾向：天气项 + 均值回归 + 完整噪声，噪声可盖过天气
+    wxNow = rollWeather(S.forecast.probs);
+    const w = WEATHER[wxNow];
+    delta = rnd(w.min, w.max) + pull * CFG.WX_PULL + noise;
+    const prev = S.weather;
+    if (wxNow === prev) S.weatherStreak++;
+    else { S.weather = wxNow; S.weatherStreak = 1; }
+    if (wxNow !== prev) log(`🌤 天气转为 <b>${w.name}</b>，已连续 ${S.weatherStreak} 天`);
+  } else {
+    // 探索模式：上一根推送的消息在本根兑现
+    const shock = S.pending ? S.pending.shock : 0;
+    S.pending = null;
+    delta = shock ? shock + noise * 0.3 : pull + noise;
+    if (shock) log(`📊 消息生效：${shock > 0 ? '利多' : '利空'}，价格 <b class="${shock > 0 ? 'p' : 'n'}">${delta > 0 ? '+' : ''}${delta.toFixed(1)}</b>`);
+  }
+
+  const price = Math.max(1, S.price + delta);
   S.price = price;
   S.openPrice = o;
   const spread = rnd(0.5, 2);
@@ -349,14 +461,19 @@ function tick() {
     o, c: price,
     h: Math.max(o, price) + spread * Math.random(),
     l: Math.min(o, price) - spread * Math.random(),
+    wx: wxNow,
   });
   S.bar++;
 
-  if (shock) log(`📊 上一根消息兑现，价格 <b class="${shock > 0 ? 'p' : 'n'}">${shock > 0 ? '+' : ''}${shock.toFixed(1)}</b>`);
-
-  // 3) 本根结束后，有概率推送新消息（下一根K线才生效）
-  if (Math.random() < CFG.NEWS_P) pushNews(genNews());
-  else render();
+  // 本根结束后：成长模式生成下一根预报；探索模式有概率推送新消息
+  if (S.mode === 'growth') {
+    S.forecast = makeForecast();
+    render();
+  } else if (Math.random() < CFG.NEWS_P) {
+    pushNews(genNews());
+  } else {
+    render();
+  }
 
   if (S.pos && avail() <= 0) {
     log('<b>⚠ 可用资金归零，触发强制平仓！</b>', 'n');
@@ -385,7 +502,8 @@ async function finish(title, desc) {
 
   $('ov-title').textContent = title;
   $('ov-body').innerHTML =
-    `${desc}<br><br>最终总资产：<b class="gold">${e.toFixed(2)}</b><br>` +
+    `${desc}<br><br>模式：<b>${S.mode === 'growth' ? '🌱 成长模式' : '🎓 探索模式'}</b><br>` +
+    `最终总资产：<b class="gold">${e.toFixed(2)}</b><br>` +
     `收益率：<b class="${r >= 0 ? 'up' : 'down'}">${r >= 0 ? '+' : ''}${r.toFixed(2)}%</b><br>` +
     `交易次数：${S.trades}`;
   $('overlay').classList.remove('hide');
@@ -459,6 +577,16 @@ function drawChart() {
     ctx.strokeStyle = '#f7d154'; ctx.setLineDash([4, 4]); ctx.beginPath();
     ctx.moveTo(0, y(S.pos.entry)); ctx.lineTo(W, y(S.pos.entry)); ctx.stroke(); ctx.setLineDash([]);
   }
+
+  // 成长模式：K线底部用天气色块标注当天天气
+  if (S.mode === 'growth') {
+    S.candles.forEach((c, i) => {
+      if (!c.wx) return;
+      const x = i * bw + Math.floor(bw / 2);
+      ctx.fillStyle = WEATHER[c.wx].color;
+      ctx.fillRect(x - 4, H - 18, 8, 8);
+    });
+  }
 }
 
 function fmt(v) { return v.toFixed(2); }
@@ -488,6 +616,34 @@ function render() {
   $('btn-auto').disabled = S.over || locked;
   $('lock-hint').textContent = locked ? '🔒 完成新手引导后解锁下单按钮（右上角「新手引导」）' : '';
   $('news-pending').style.display = S.pending ? 'inline' : 'none';
+
+  // 模式面板：探索=快讯栏，成长=天气栏
+  const growth = S.mode === 'growth';
+  $('news-bar').style.display = growth ? 'none' : 'flex';
+  $('weather-bar').style.display = growth ? 'flex' : 'none';
+  $('mode-badge').textContent = growth ? '🌱 成长模式' : '🎓 探索模式';
+  if (growth) {
+    const w = WEATHER[S.weather];
+    $('wx-icon').textContent = w.ch;
+    $('wx-icon').style.background = w.color;
+    $('wx-streak').textContent = `连续 ${S.weatherStreak} 天`;
+    if (S.forecast) {
+      const items = WX_KEYS
+        .map(k => ({ k, p: S.forecast.probs[k] }))
+        .filter(x => x.p >= 0.02)
+        .sort((a, b) => b.p - a.p)
+        .map(({ k, p }) => {
+          const f = WEATHER[k];
+          return `<span class="prob"><i class="wx-chip" style="background:${f.color}" title="${f.name}">${f.ch}</i><b style="color:${f.color}">${Math.round(p * 100)}%</b></span>`;
+        });
+      $('wx-fc').innerHTML = items.join('<em>·</em>');
+    }
+    // 历史天气：最近 10 根K线，最右为最新
+    $('wx-history').innerHTML = S.candles.filter(c => c.wx).slice(-10).map(c => {
+      const f = WEATHER[c.wx];
+      return `<span title="${f.name} ${c.o.toFixed(1)}→${c.c.toFixed(1)}"><i class="wx-chip" style="background:${f.color}">${f.ch}</i></span>`;
+    }).join('');
+  }
   drawChart();
 }
 
@@ -526,30 +682,44 @@ requestAnimationFrame(marqueeLoop);
 /* =========================================================
  * 新手引导 / FAQ
  * =======================================================*/
-const GUIDE = [
-  { t: '1 · 认识行情与标的', b: `
+const GUIDE_INTRO = {
+  explore: { t: '认识行情与标的', b: `
     本游戏交易的品种是<b>校园谷物</b>。<br>
     画面上方会显示【最新价格】和【本根开盘价】，每点一次「下一根K线」，时间推进一格，价格随之变动。<br>
-    行情偶尔会在【行情快讯】栏推送消息，暗示接下来大概率涨或跌；消息只是参考，行情依然可能反向波动，
-    而且消息要<b>下一根K线才会兑现</b>。<br>
-    <span class="ex">例：虫害预警（偏利多，容易涨价）、丰收入库（偏利空，容易降价）</span>
+    行情偶尔会在【行情快讯】栏推送消息，消息出现后<b>下一根K线</b>会沿消息方向走一段：利好消息涨，利空消息跌，
+    一条消息只有一个方向，不会反向。但消息只影响一根K线，之后价格仍会慢慢回归中枢 100。<br>
+    <span class="ex">例：虫害预警（利多，下一根上涨）、丰收入库（利空，下一根下跌）</span>
     <br><b>可操作提示：现在先观察价格，熟悉行情变化。</b>` },
 
-  { t: '2 · 什么是做多（开多）', b: `
+  growth: { t: '认识行情与天气', b: `
+    本游戏交易的品种是<b>校园谷物</b>。<br>
+    成长模式<b>没有市场消息</b>，行情与<b>天气</b>相关：天气影响收割、存储和运输，进而改变供应，带动价格。<br>
+    天气栏会显示：当前天气、已连续几天、以及<b>下一根的天气预报</b>。价格依然会围绕中枢 100 回归。<br>
+    <b>可操作提示：天气预报只是辅助线索，不是涨跌保证，还要结合价格位置判断。</b>` },
+};
+
+const WX_STEP = { t: '三种天气与价格的关系', b: `
+  <b style="color:#f7d154">晴天</b>：利于收割晾晒，谷物集中上市，供应充足 → <b class="down">价格偏弱</b><br>
+  <b style="color:#94b0c2">阴天</b>：收割运输正常，供应无变化 → <b>价格小幅波动</b><br>
+  <b style="color:#73bed3">雨雪</b>：阻断收割与运输，短期供应紧张 → <b class="up">价格偏强</b><br>
+  <span class="ex">天气只提供方向倾向，不是保证：每天仍有随机波动和回归中枢的拉力，晴天也可能收阳、雨雪也可能收阴。连续同种天气越久越容易转天，看到「连续 3 天」就要留神。</span>` };
+
+const GUIDE_MAIN = [
+  { t: '什么是做多（开多）', b: `
     ✅ <b>做多</b> = 你预判谷物价格会上涨。<br>
     操作：点击【做多】建立多单。<br>
     赚钱逻辑：开仓买入 → 价格上涨 → 点【平仓】卖出，赚取差价。<br>
     亏钱情况：开多之后价格下跌，产生浮亏，持续亏损会消耗你的可用资金。
     <span class="ex">例：100 开多，涨到 108 平仓，赚差价；跌到 92 平仓，则产生亏损。</span>` },
 
-  { t: '3 · 什么是做空（开空）', b: `
+  { t: '什么是做空（开空）', b: `
     ✅ <b>做空</b> = 你预判谷物价格会下跌。<br>
     做空是期货的特色：可以先「卖出」，等价格跌了再买回来平仓。<br>
     赚钱逻辑：开仓卖出 → 价格下跌 → 点【平仓】买回，赚取差价。<br>
     亏钱情况：开空之后价格上涨，产生浮亏，持续亏损同样消耗可用资金。
     <span class="ex">例：100 开空，跌到 93 平仓，赚差价；涨到 107 平仓，则产生亏损。</span>` },
 
-  { t: '4 · 保证金与杠杆', b: `
+  { t: '保证金与杠杆', b: `
     本游戏固定 <b>10 倍杠杆</b>，只需拿出合约价值 10% 的资金作为【保证金】，就能开一手单子。<br>
     保证金一旦开仓就会被锁定，锁定的保证金不能用来承担亏损。<br>
     账户资金分为两部分：
@@ -559,25 +729,25 @@ const GUIDE = [
     </ul>
     <span class="ex">每一次开仓、平仓都会收取手续费，直接从可用资金扣除。</span>` },
 
-  { t: '5 · 浮盈与浮亏', b: `
+  { t: '浮盈与浮亏', b: `
     持仓没有平仓之前，盈亏叫浮盈 / 浮亏，只是账面盈亏，还没有真正到手或确认亏损。<br>
     <b class="up">浮盈</b>：行情顺着你的预判走，账面赚钱，平仓之后利润才正式入账。<br>
     <b class="down">浮亏</b>：行情和你的预判相反，账面亏钱，浮亏会持续吃掉你的可用资金。` },
 
-  { t: '6 · 强制平仓（爆仓）', b: `
+  { t: '强制平仓（爆仓）', b: `
     ⚠️ <b>风险重点！</b><br>
     当你的可用资金 <b>≤ 0</b>，保证金不足以支撑当前亏损，系统会立刻自动帮你平仓，也就是【强平 / 爆仓】。<br>
     爆仓后仓位直接清零，结算剩余资金，本轮这笔交易直接结束。<br>
     爆仓不会额外罚款，但你会失去翻盘机会，一定要盯住<b>可用资金</b>！` },
 
-  { t: '7 · 平仓，了结一笔交易', b: `
+  { t: '平仓，了结一笔交易', b: `
     不管多单还是空单，想结算盈亏都要点【平仓】。平仓之后：<br>
     ✅ 仓位清空，保证金返还<br>
     ✅ 扣除平仓手续费<br>
     ✅ 本次交易的盈利或亏损，计入你的账户总资产<br>
     <span class="ex">注意：没有持仓时，平仓按钮是灰色不可点击的。</span>` },
 
-  { t: '8 · 回合规则与结算', b: `
+  { t: '回合规则与结算', b: `
     一局游戏最多 <b>30 根 K 线</b>，每点一次「下一根K线」消耗 1 回合。<br>
     30 根走完后，系统会自动平掉你的持仓并结算最终总资产：
     <ul>
@@ -587,7 +757,7 @@ const GUIDE = [
     </ul>
     结算后会给出收益率，并可以选择重新开局。` },
 
-  { t: '9 · 界面面板说明', b: `
+  { t: '界面面板说明', b: `
     这些数字一定要多看：
     <ul>
       <li>最新价格：校园谷物实时价格</li>
@@ -603,23 +773,34 @@ const GUIDE = [
     <span class="ex">杠杆放大收益，也放大风险；浮盈不是实赚，落袋才安心。</span>` },
 ];
 
-const FAQ = [
+const FAQ_BASE = [
   ['我能不能同时做多 + 做空？', '不能。简化规则下，同一时间只能持有一个仓位（多仓 / 空仓 / 无持仓），避免锁仓玩法。'],
-  ['消息一定准吗？', '不一定。消息只是概率倾向：约七成消息会兑现，三成是谣言、行情反向波动，不要无脑跟消息下单。'],
   ['手续费什么时候扣？', '开仓时扣一次，平仓时再扣一次，都从可用资金扣除。'],
   ['手动平仓和爆仓有什么区别？', '手动平仓是你主动离场；爆仓是可用资金 ≤ 0 时被系统强制离场，被动结束交易。'],
   ['30 根 K 线走完还没平仓怎么办？', '系统会自动平仓并结算，自动结束本局。'],
 ];
+const FAQ_MODE = {
+  explore: ['消息一定准吗？', '准。利好消息下一根必涨，利空消息下一根必跌，同一消息不会反向。但消息只影响一根K线，之后价格仍会向中枢 100 回归，所以还要看当前价格离中枢远不远。'],
+  growth: ['天气预报一定准吗？', '不一定。天气只提供方向倾向，是辅助判断的线索：晴天多数时候偏弱、雨雪多数时候偏强，但每天仍有随机噪声和回归中枢的拉力，会出现反向的那一根。天气越连续越容易转天，预报要结合价格位置一起看。'],
+};
+function faqList() { return [FAQ_BASE[0], FAQ_MODE[S.mode], ...FAQ_BASE.slice(1)]; }
+
+function guideList() {
+  const list = [GUIDE_INTRO[S.mode], ...GUIDE_MAIN];
+  if (S.mode === 'growth') list.splice(1, 0, WX_STEP);
+  return list;
+}
 
 let gStep = 0;
 function paintGuide() {
-  const it = GUIDE[gStep];
-  $('g-num').textContent = `${gStep + 1} / ${GUIDE.length}`;
-  $('g-title').textContent = it.t;
+  const list = guideList();
+  const it = list[gStep];
+  $('g-num').textContent = `${gStep + 1} / ${list.length}`;
+  $('g-title').textContent = `${gStep + 1} · ${it.t}`;
   $('g-body').innerHTML = it.b;
-  $('g-dots').innerHTML = GUIDE.map((_, i) => `<i class="${i <= gStep ? 'on' : ''}"></i>`).join('');
+  $('g-dots').innerHTML = list.map((_, i) => `<i class="${i <= gStep ? 'on' : ''}"></i>`).join('');
   $('g-prev').disabled = gStep === 0;
-  $('g-next').textContent = gStep === GUIDE.length - 1 ? '完成引导 ✓' : '下一步 ▶';
+  $('g-next').textContent = gStep === list.length - 1 ? '完成引导 ✓' : '下一步 ▶';
 }
 function openGuide(at = 0) {
   gStep = at;
@@ -628,7 +809,7 @@ function openGuide(at = 0) {
 }
 $('g-prev').onclick = () => { if (gStep > 0) { gStep--; paintGuide(); } };
 $('g-next').onclick = () => {
-  if (gStep < GUIDE.length - 1) { gStep++; paintGuide(); return; }
+  if (gStep < guideList().length - 1) { gStep++; paintGuide(); return; }
   $('guide').classList.add('hide');
   S.tutorialDone = true;
   try { localStorage.setItem('gf_guide_seen', '1'); } catch (e) {}
@@ -638,10 +819,12 @@ $('g-next').onclick = () => {
 $('btn-guide').onclick = () => openGuide(0);
 $('btn-guide-start').onclick = () => openGuide(0);
 
-$('fq').innerHTML = FAQ.map(([q, a]) =>
-  `<p style="color:var(--gold);margin-top:10px">Q：${q}</p>
-   <p style="color:var(--dim)">A：${a}</p>`).join('');
-$('btn-faq').onclick = () => $('faq').classList.remove('hide');
+function paintFaq() {
+  $('fq').innerHTML = faqList().map(([q, a]) =>
+    `<p style="color:var(--gold);margin-top:10px">Q：${q}</p>
+     <p style="color:var(--dim)">A：${a}</p>`).join('');
+}
+$('btn-faq').onclick = () => { paintFaq(); $('faq').classList.remove('hide'); };
 $('btn-faq-close').onclick = () => $('faq').classList.add('hide');
 
 /* 边角小提示轮播 */
@@ -691,31 +874,72 @@ document.addEventListener('keydown', e => {
   if (e.key === '3') closePos();
 });
 
+document.querySelectorAll('.mode-card').forEach(c => c.onclick = () => {
+  document.querySelectorAll('.mode-card').forEach(x => x.classList.remove('on'));
+  c.classList.add('on');
+  S.mode = c.dataset.mode;
+  $('mode-badge').textContent = S.mode === 'growth' ? '🌱 成长模式' : '🎓 探索模式';
+  render();
+});
+
 /* 开局 */
 $('nick').value = GF.getNick();
 function startGame() {
   S.nick = $('nick').value.trim().slice(0, 12);
   GF.setNick(S.nick);
   S.started = true;
+  if (S.mode === 'growth') seedWeather();
   $('start').classList.add('hide');
-  GF.track('game_start', S.nick || 'anon');
-  log(`欢迎，<b>${S.nick || '匿名农场主'}</b>！初始本金 10000，10倍杠杆，30根K线后结算。`);
+  GF.track('game_start', `${S.mode}|${S.nick || 'anon'}`);
+  log(`欢迎，<b>${S.nick || '匿名农场主'}</b>！${S.mode === 'growth' ? '成长模式（天气驱动）' : '探索模式（消息驱动）'}，初始本金 10000，10倍杠杆，30根K线后结算。`);
   if (!S.tutorialDone) openGuide(0);
   render();
 }
 $('btn-start').onclick = startGame;
 $('nick').addEventListener('keydown', e => { if (e.key === 'Enter') startGame(); });
 
-/* 初始化：预置 5 根历史K线 */
+/* 预置 5 根历史K线：随机起点 + 随机形状，每局开局不重复 */
+function seedCandles() {
+  S.candles = [];
+  let p = rnd(94, 106);                       // 开局价格随机落在中枢附近
+  for (let i = 0; i < 5; i++) {
+    const o = p;
+    const pull = CFG.REVERT * (CFG.CENTER - o);
+    const noise = (Math.random() < .5 ? -1 : 1) * rnd(CFG.NOISE_MIN, CFG.NOISE_MAX);
+    p = Math.max(1, o + pull + noise);
+    const sp = rnd(0.6, 2.2);
+    S.candles.push({
+      o, c: p,
+      h: Math.max(o, p) + sp * Math.random(),
+      l: Math.min(o, p) - sp * Math.random(),
+      wx: null,
+    });
+  }
+  S.price = p;
+  S.openPrice = S.candles[S.candles.length - 1].o;
+}
+
+/* 成长模式：给开局历史K线补上天气，制造不同的连续段 */
+function seedWeather() {
+  const base = WX_KEYS[Math.floor(Math.random() * WX_KEYS.length)];
+  let cur = base, streak = 1, last = base;
+  S.candles.forEach((c, i) => {
+    if (i >= 2 && Math.random() < 0.5) {      // 后半段可能转天
+      cur = rollWeather(wxProbs(cur, streak));
+      streak = 1;
+    } else if (i > 0) streak++;
+    c.wx = cur;
+    last = cur;
+  });
+  S.weather = last;
+  S.weatherStreak = streak;
+  S.forecast = makeForecast();
+}
+
+/* 初始化 */
 GF.initStats();
 drawWheat();
-S.candles.push({ o: 97.5, c: 98.2, h: 99.4, l: 96.9 });
-S.candles.push({ o: 98.2, c: 99.1, h: 99.8, l: 97.7 });
-S.candles.push({ o: 99.1, c: 98.3, h: 100.2, l: 98.0 });
-S.candles.push({ o: 98.3, c: 100.4, h: 100.9, l: 98.1 });
-S.candles.push({ o: 100.4, c: 100.1, h: 101.3, l: 99.6 });
-S.price = 100.1;
-S.openPrice = S.candles[S.candles.length - 1].o;
+seedCandles();
 try { S.tutorialDone = localStorage.getItem('gf_guide_seen') === '1'; } catch (e) {}
 updateMarquee();
 $('tips').textContent = TIPS[0];
