@@ -51,9 +51,11 @@ header .sp{flex:1;}
 .controls{margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;}
 .controls .grp{display:flex; gap:6px; align-items:center;}
 .size-btn.on{background:var(--gold); color:#1a1c2c; text-shadow:none;}
-#news{margin-top:10px; min-height:58px; background:#3a2c14; border:4px solid var(--orange); padding:10px; display:none;}
-#news .tag{color:var(--orange); font-size:10px;}
-#news .txt{margin-top:6px; color:var(--gold);}
+.news-bar{margin-top:10px; display:flex; align-items:center; gap:10px; background:#3a2c14; border:4px solid var(--orange); padding:8px 10px; min-height:44px;}
+.news-bar .tag{color:var(--orange); font-size:10px; white-space:nowrap;}
+.marq{position:relative; flex:1; height:20px; overflow:hidden;}
+.marq-text{position:absolute; top:2px; left:0; white-space:nowrap; color:var(--gold); font-size:10px; will-change:transform;}
+.pending{font-size:9px; color:#ffb86b; white-space:nowrap; animation:blink 1s steps(2) infinite;}
 #log{list-style:none; max-height:220px; overflow-y:auto; font-size:10px;}
 #log li{padding:4px 2px; border-bottom:2px dashed #3a4160; color:var(--dim);}
 #log li b{color:var(--txt);}
@@ -61,7 +63,7 @@ header .sp{flex:1;}
 .modal{position:fixed; inset:0; background:rgba(0,0,0,.82); display:flex;
   align-items:center; justify-content:center; z-index:10; padding:16px;}
 .modal.hide{display:none;}
-.modal .card{background:var(--panel); padding:24px; text-align:center; max-width:460px; width:100%;}
+.modal .card{background:var(--panel); padding:24px; text-align:center; max-width:460px; width:100%; max-height:88vh; overflow-y:auto;}
 .modal h2{color:var(--gold); margin-bottom:10px;}
 .modal p{color:var(--dim); margin:8px 0; font-size:11px;}
 .modal .hint{color:#7c8a9c; font-size:9px; margin-top:10px; line-height:1.6;}
@@ -70,13 +72,28 @@ header .sp{flex:1;}
   color:var(--txt); border:4px solid var(--line); margin:14px 0 0; text-align:center;
   box-shadow: inset 4px 4px 0 0 rgba(0,0,0,.4);}
 #nick:focus{outline:none; border-color:var(--gold);}
-.ticker{white-space:nowrap; overflow:hidden; color:var(--dim); font-size:9px; margin-top:6px;}
+.notice{max-width:1080px; margin:10px auto 0; padding:8px 12px; background:#3a1c1c; border:4px solid var(--red); color:#ffb0b0; font-size:10px; line-height:1.7;}
+.tips{margin-top:8px; color:#7c8a9c; font-size:9px;}
+.lock-hint{margin-top:8px; color:var(--gold); font-size:10px;}
+.modal .card.wide{max-width:600px; text-align:left;}
+.intro{text-align:left; margin:12px 0 0; font-size:11px; line-height:1.85;}
+.intro p{margin:7px 0; color:var(--txt);}
+.intro .small{color:var(--dim); font-size:10px;}
+.step-num{color:var(--dim); font-size:10px;}
+.step-title{color:var(--gold); font-size:13px; margin:4px 0 10px;}
+.step-body{font-size:11px; color:var(--txt); line-height:1.9;}
+.step-body ul{margin:8px 0 0 18px; color:var(--dim);}
+.step-body .ex{color:var(--dim); font-size:10px; margin-top:8px; display:block;}
+.step-dots{display:flex; gap:5px; justify-content:center; margin-top:14px; flex-wrap:wrap;}
+.step-dots i{width:10px; height:10px; background:#3a4160; display:block;}
+.step-dots i.on{background:var(--gold);}
 .blink{animation:blink 1s steps(2) infinite;}
 @keyframes blink{50%{opacity:.25;}}
 a.px-btn{text-decoration:none; display:inline-block;}
 </style>
 </head>
 <body>
+<div class="notice">⚠️ 重要声明：本游戏仅为简化教学休闲小游戏，和真实期货市场有巨大区别。真实期货杠杆风险极高，可能亏损全部本金，请勿把游戏经验用于现实投资。</div>
 <div class="wrap">
   <header>
     <canvas id="wheat" width="32" height="32" style="width:48px;height:48px"></canvas>
@@ -85,6 +102,8 @@ a.px-btn{text-decoration:none; display:inline-block;}
       <div class="sub">CAMPUS GRAIN FUTURES EXCHANGE · 10x LEVERAGE</div>
     </div>
     <div class="sp"></div>
+    <button class="px-btn" id="btn-guide">❓ 新手引导</button>
+    <button class="px-btn" id="btn-faq">📖 帮助</button>
     <a class="px-btn gold" href="leaderboard.html">🏆 排行榜</a>
   </header>
 
@@ -92,10 +111,10 @@ a.px-btn{text-decoration:none; display:inline-block;}
     <section class="panel px-border">
       <h2>行情 K线 <span id="bar-count" class="gold"></span></h2>
       <canvas id="chart" class="px-border"></canvas>
-      <div class="ticker" id="ticker">价格中枢 100 · 均值回归 0.03 · 消息概率 20%</div>
-      <div id="news" class="px-border">
-        <div class="tag blink">▶ 市场快讯 BREAKING NEWS</div>
-        <div class="txt" id="news-text"></div>
+      <div class="news-bar px-border">
+        <span class="tag blink">📰 行情快讯</span>
+        <div class="marq" id="marq"><div class="marq-text" id="marq-text">暂无消息，价格围绕中枢 100 波动…</div></div>
+        <span class="pending" id="news-pending" style="display:none">⏳ 下根K线生效</span>
       </div>
       <div class="controls">
         <div class="grp">
@@ -115,6 +134,8 @@ a.px-btn{text-decoration:none; display:inline-block;}
           <button id="btn-auto" class="px-btn">▶ 自动</button>
         </div>
       </div>
+      <div class="lock-hint" id="lock-hint"></div>
+      <div class="tips" id="tips">杠杆放大收益，也放大风险</div>
     </section>
 
     <section>
@@ -122,6 +143,7 @@ a.px-btn{text-decoration:none; display:inline-block;}
         <h2>账户 ACCOUNT</h2>
         <div class="stats" style="grid-template-columns:1fr 1fr;">
           <div class="stat"><div class="k">最新价格</div><div class="v gold" id="s-price">100.00</div></div>
+          <div class="stat"><div class="k">本根开盘价</div><div class="v" id="s-open">100.00</div></div>
           <div class="stat"><div class="k">总资产</div><div class="v" id="s-equity">10000</div></div>
           <div class="stat"><div class="k">占用保证金</div><div class="v" id="s-margin">0</div></div>
           <div class="stat"><div class="k">可用资金</div><div class="v" id="s-avail">10000</div></div>
@@ -143,12 +165,45 @@ a.px-btn{text-decoration:none; display:inline-block;}
 <div id="start" class="modal">
   <div class="card px-border">
     <h2>🥐 校园谷物期货交易所</h2>
-    <p>初始本金 10000 · 10倍杠杆 · 30根K线后结算</p>
+    <div class="intro">
+      <p>欢迎来到校园谷物期货交易所！在这里你可以体验期货最核心的两种交易：<b>做多</b>、<b>做空</b>。</p>
+      <p>价格会随行情消息随机涨跌，你可以预判价格走向开仓，合适时机平仓落袋利润；如果亏损过大，会触发强制平仓（爆仓）。</p>
+      <p><span class="up">做多</span>：看涨，低价买、高价卖，涨价赚钱<br>
+         <span class="down">做空</span>：看跌，先高价卖出、后续低价买回，跌价赚钱</p>
+      <p class="small">游戏目标：在 30 根 K 线的周期结束时，尽可能让总资产变多。<br>
+         初始本金 10000 · 固定 10 倍杠杆 · 同时只能持有一个仓位</p>
+    </div>
     <input id="nick" maxlength="12" autocomplete="off" placeholder="输入昵称（上榜用）">
     <div class="acts">
+      <button class="px-btn" id="btn-guide-start">📖 先看新手引导</button>
       <button class="px-btn gold" id="btn-start">开 始 交 易</button>
     </div>
-    <div class="hint">昵称会随最终总资产一起进入排行榜；留空则显示「匿名农场主」</div>
+    <div class="hint">首次开始会先弹出 9 步新手引导，看完后才会解锁下单按钮</div>
+  </div>
+</div>
+
+<!-- 新手引导 -->
+<div id="guide" class="modal hide">
+  <div class="card px-border wide">
+    <div class="step-num" id="g-num">1 / 9</div>
+    <div class="step-title" id="g-title"></div>
+    <div class="step-body" id="g-body"></div>
+    <div class="step-dots" id="g-dots"></div>
+    <div class="acts">
+      <button class="px-btn" id="g-prev">◀ 上一步</button>
+      <button class="px-btn gold" id="g-next">下一步 ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- 帮助 / FAQ -->
+<div id="faq" class="modal hide">
+  <div class="card px-border wide">
+    <div class="step-title">📖 常见问题</div>
+    <div class="step-body" id="fq"></div>
+    <div class="acts">
+      <button class="px-btn gold" id="btn-faq-close">知道了</button>
+    </div>
   </div>
 </div>
 
@@ -196,6 +251,10 @@ const S = {
   sizePct: 0.5,
   nick: '',
   started: false,
+  openPrice: 100.4,     // 本根K线开盘价
+  pending: null,        // 已推送、下一根K线才生效的消息
+  newsFeed: [],         // 快讯历史（滚动栏展示）
+  tutorialDone: false,
 };
 
 const $ = id => document.getElementById(id);
@@ -216,19 +275,13 @@ const BAD_NEWS = [
 const rnd = (a, b) => a + Math.random() * (b - a);
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 
-function nextPrice() {
-  const pull = CFG.REVERT * (CFG.CENTER - S.price);
-  const noise = (Math.random() < .5 ? -1 : 1) * rnd(CFG.NOISE_MIN, CFG.NOISE_MAX);
-  let shock = 0, news = null;
-
-  if (Math.random() < CFG.NEWS_P) {
-    const bullish = Math.random() < .5;
-    const isTrue = Math.random() < CFG.NEWS_TRUE_P;
-    const mag = rnd(CFG.NEWS_MIN, CFG.NEWS_MAX);
-    shock = (bullish === isTrue) ? mag : -mag;
-    news = { text: pick(bullish ? GOOD_NEWS : BAD_NEWS), bullish };
-  }
-  return { price: Math.max(1, S.price + pull + noise + shock), news };
+/* 生成一条消息：利好/利空由玩家判断，真假与方向由程序内部决定 */
+function genNews() {
+  const bullish = Math.random() < .5;                 // 利好 or 利空
+  const isTrue = Math.random() < CFG.NEWS_TRUE_P;     // 真消息 or 谣言
+  const mag = rnd(CFG.NEWS_MIN, CFG.NEWS_MAX);
+  const shock = (bullish === isTrue) ? mag : -mag;    // 利好真→涨，利好谣言→跌，反之亦然
+  return { text: pick(bullish ? GOOD_NEWS : BAD_NEWS), bullish, shock };
 }
 
 /* =========================================================
@@ -279,8 +332,18 @@ function closePos(reason) {
 function tick() {
   if (S.over || !S.started) return;
   const o = S.price;
-  const { price, news } = nextPrice();
+
+  // 1) 上一根推送的消息，在本根K线兑现（玩家先看到消息，再走K线）
+  const shock = S.pending ? S.pending.shock : 0;
+  S.pending = null;
+
+  // 2) 新价格 = 现价 + 均值回归拉力 + 随机噪声 + 消息扰动
+  const pull = CFG.REVERT * (CFG.CENTER - S.price);
+  const noise = (Math.random() < .5 ? -1 : 1) * rnd(CFG.NOISE_MIN, CFG.NOISE_MAX);
+  const price = Math.max(1, S.price + pull + noise + shock);
+
   S.price = price;
+  S.openPrice = o;
   const spread = rnd(0.5, 2);
   S.candles.push({
     o, c: price,
@@ -289,7 +352,11 @@ function tick() {
   });
   S.bar++;
 
-  if (news) showNews(news); else $('news').style.display = 'none';
+  if (shock) log(`📊 上一根消息兑现，价格 <b class="${shock > 0 ? 'p' : 'n'}">${shock > 0 ? '+' : ''}${shock.toFixed(1)}</b>`);
+
+  // 3) 本根结束后，有概率推送新消息（下一根K线才生效）
+  if (Math.random() < CFG.NEWS_P) pushNews(genNews());
+  else render();
 
   if (S.pos && avail() <= 0) {
     log('<b>⚠ 可用资金归零，触发强制平仓！</b>', 'n');
@@ -369,6 +436,16 @@ function drawChart() {
   ctx.fillStyle = '#94b0c2'; ctx.font = '20px monospace';
   ctx.fillText('中枢100', 8, y(CFG.CENTER) - 8);
 
+  // 本根开盘价参考线（便于判断当根涨跌）
+  if (S.candles.length) {
+    const op = S.candles[S.candles.length - 1].o;
+    ctx.strokeStyle = '#41a6f6'; ctx.setLineDash([6, 6]); ctx.beginPath();
+    ctx.moveTo(0, y(op)); ctx.lineTo(W, y(op)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#41a6f6';
+    ctx.fillText('开 ' + op.toFixed(2), W - 130, y(op) - 6);
+  }
+
   S.candles.forEach((c, i) => {
     const x = i * bw + Math.floor(bw / 2);
     const up = c.c >= c.o;
@@ -388,6 +465,8 @@ function fmt(v) { return v.toFixed(2); }
 
 function render() {
   $('s-price').textContent = fmt(S.price);
+  $('s-open').textContent = fmt(S.openPrice);
+  $('s-open').className = 'v ' + (S.price === S.openPrice ? '' : (S.price > S.openPrice ? 'up' : 'down'));
   $('s-equity').textContent = fmt(equity());
   $('s-margin').textContent = fmt(S.margin);
   $('s-avail').textContent = fmt(avail());
@@ -402,9 +481,13 @@ function render() {
     ? `${S.pos.side === 'long' ? '▲ 多仓' : '▼ 空仓'} ${S.pos.qty.toFixed(1)} 单位谷物 @ ${fmt(S.pos.entry)}<br>
        名义价值 ${fmt(S.pos.qty * S.price)} · 保证金 ${fmt(S.pos.margin)} · 强平线：可用资金 ≤ 0`
     : '尚未开仓。选择保证金比例后点击 做多 / 做空。';
-  $('btn-long').disabled = $('btn-short').disabled = !!S.pos || S.over;
-  $('btn-close').disabled = !S.pos || S.over;
-  $('btn-next').disabled = S.over;
+  const locked = !S.tutorialDone;
+  $('btn-long').disabled = $('btn-short').disabled = !!S.pos || S.over || locked;
+  $('btn-close').disabled = !S.pos || S.over || locked;
+  $('btn-next').disabled = S.over || locked;
+  $('btn-auto').disabled = S.over || locked;
+  $('lock-hint').textContent = locked ? '🔒 完成新手引导后解锁下单按钮（右上角「新手引导」）' : '';
+  $('news-pending').style.display = S.pending ? 'inline' : 'none';
   drawChart();
 }
 
@@ -414,14 +497,157 @@ function log(html) {
   $('log').prepend(li);
 }
 
-let newsTimer = null;
-function showNews(news) {
-  $('news-text').textContent = news.text;
-  $('news').style.display = 'block';
-  log(`📰 快讯：${news.text}`);
-  clearTimeout(newsTimer);
-  newsTimer = setTimeout(() => $('news').style.display = 'none', 6000);
+/* 滚动快讯栏：先推送消息，下一根K线才兑现 */
+const marqueeBox = $('marq'), marqueeEl = $('marq-text');
+let marqueeX = 0;
+function updateMarquee() {
+  const text = S.newsFeed.length
+    ? S.newsFeed.join('　　◆　　') + '　　◆　　下一根K线见分晓…'
+    : '暂无消息，价格围绕中枢 100 波动…';
+  marqueeEl.textContent = text;
+  marqueeX = marqueeBox.clientWidth + 10;
 }
+function marqueeLoop() {
+  marqueeX -= 1.4;
+  if (marqueeX < -marqueeEl.scrollWidth - 20) marqueeX = marqueeBox.clientWidth + 10;
+  marqueeEl.style.transform = `translateX(${marqueeX}px)`;
+  requestAnimationFrame(marqueeLoop);
+}
+function pushNews(news) {
+  S.pending = news;                    // 下一根K线生效
+  S.newsFeed.push(news.text);
+  if (S.newsFeed.length > 4) S.newsFeed.shift();
+  log(`📰 快讯：${news.text}（下一根K线兑现）`);
+  updateMarquee();
+  render();
+}
+requestAnimationFrame(marqueeLoop);
+
+/* =========================================================
+ * 新手引导 / FAQ
+ * =======================================================*/
+const GUIDE = [
+  { t: '1 · 认识行情与标的', b: `
+    本游戏交易的品种是<b>校园谷物</b>。<br>
+    画面上方会显示【最新价格】和【本根开盘价】，每点一次「下一根K线」，时间推进一格，价格随之变动。<br>
+    行情偶尔会在【行情快讯】栏推送消息，暗示接下来大概率涨或跌；消息只是参考，行情依然可能反向波动，
+    而且消息要<b>下一根K线才会兑现</b>。<br>
+    <span class="ex">例：虫害预警（偏利多，容易涨价）、丰收入库（偏利空，容易降价）</span>
+    <br><b>可操作提示：现在先观察价格，熟悉行情变化。</b>` },
+
+  { t: '2 · 什么是做多（开多）', b: `
+    ✅ <b>做多</b> = 你预判谷物价格会上涨。<br>
+    操作：点击【做多】建立多单。<br>
+    赚钱逻辑：开仓买入 → 价格上涨 → 点【平仓】卖出，赚取差价。<br>
+    亏钱情况：开多之后价格下跌，产生浮亏，持续亏损会消耗你的可用资金。
+    <span class="ex">例：100 开多，涨到 108 平仓，赚差价；跌到 92 平仓，则产生亏损。</span>` },
+
+  { t: '3 · 什么是做空（开空）', b: `
+    ✅ <b>做空</b> = 你预判谷物价格会下跌。<br>
+    做空是期货的特色：可以先「卖出」，等价格跌了再买回来平仓。<br>
+    赚钱逻辑：开仓卖出 → 价格下跌 → 点【平仓】买回，赚取差价。<br>
+    亏钱情况：开空之后价格上涨，产生浮亏，持续亏损同样消耗可用资金。
+    <span class="ex">例：100 开空，跌到 93 平仓，赚差价；涨到 107 平仓，则产生亏损。</span>` },
+
+  { t: '4 · 保证金与杠杆', b: `
+    本游戏固定 <b>10 倍杠杆</b>，只需拿出合约价值 10% 的资金作为【保证金】，就能开一手单子。<br>
+    保证金一旦开仓就会被锁定，锁定的保证金不能用来承担亏损。<br>
+    账户资金分为两部分：
+    <ul>
+      <li>占用保证金：开仓锁住，平仓之后返还给你</li>
+      <li>可用资金：用来承受浮动盈亏、支付手续费，是你的安全垫</li>
+    </ul>
+    <span class="ex">每一次开仓、平仓都会收取手续费，直接从可用资金扣除。</span>` },
+
+  { t: '5 · 浮盈与浮亏', b: `
+    持仓没有平仓之前，盈亏叫浮盈 / 浮亏，只是账面盈亏，还没有真正到手或确认亏损。<br>
+    <b class="up">浮盈</b>：行情顺着你的预判走，账面赚钱，平仓之后利润才正式入账。<br>
+    <b class="down">浮亏</b>：行情和你的预判相反，账面亏钱，浮亏会持续吃掉你的可用资金。` },
+
+  { t: '6 · 强制平仓（爆仓）', b: `
+    ⚠️ <b>风险重点！</b><br>
+    当你的可用资金 <b>≤ 0</b>，保证金不足以支撑当前亏损，系统会立刻自动帮你平仓，也就是【强平 / 爆仓】。<br>
+    爆仓后仓位直接清零，结算剩余资金，本轮这笔交易直接结束。<br>
+    爆仓不会额外罚款，但你会失去翻盘机会，一定要盯住<b>可用资金</b>！` },
+
+  { t: '7 · 平仓，了结一笔交易', b: `
+    不管多单还是空单，想结算盈亏都要点【平仓】。平仓之后：<br>
+    ✅ 仓位清空，保证金返还<br>
+    ✅ 扣除平仓手续费<br>
+    ✅ 本次交易的盈利或亏损，计入你的账户总资产<br>
+    <span class="ex">注意：没有持仓时，平仓按钮是灰色不可点击的。</span>` },
+
+  { t: '8 · 回合规则与结算', b: `
+    一局游戏最多 <b>30 根 K 线</b>，每点一次「下一根K线」消耗 1 回合。<br>
+    30 根走完后，系统会自动平掉你的持仓并结算最终总资产：
+    <ul>
+      <li>总资产 &gt; 10000：盈利</li>
+      <li>总资产 = 10000：持平</li>
+      <li>总资产 &lt; 10000：亏损</li>
+    </ul>
+    结算后会给出收益率，并可以选择重新开局。` },
+
+  { t: '9 · 界面面板说明', b: `
+    这些数字一定要多看：
+    <ul>
+      <li>最新价格：校园谷物实时价格</li>
+      <li>本根开盘价：这一根K线的起点价，用来判断当根涨跌</li>
+      <li>总资产 = 占用保证金 + 可用资金</li>
+      <li>占用保证金：开仓锁住的资金</li>
+      <li>可用资金：承受浮亏、扣手续费的资金，重点监控</li>
+      <li>当前持仓：无 / 多仓 / 空仓</li>
+      <li>开仓均价：这一单的成交价格</li>
+      <li>浮盈 / 浮亏：当前持仓的账面盈亏</li>
+      <li>成交记录：所有开仓、平仓的历史</li>
+    </ul>
+    <span class="ex">杠杆放大收益，也放大风险；浮盈不是实赚，落袋才安心。</span>` },
+];
+
+const FAQ = [
+  ['我能不能同时做多 + 做空？', '不能。简化规则下，同一时间只能持有一个仓位（多仓 / 空仓 / 无持仓），避免锁仓玩法。'],
+  ['消息一定准吗？', '不一定。消息只是概率倾向：约七成消息会兑现，三成是谣言、行情反向波动，不要无脑跟消息下单。'],
+  ['手续费什么时候扣？', '开仓时扣一次，平仓时再扣一次，都从可用资金扣除。'],
+  ['手动平仓和爆仓有什么区别？', '手动平仓是你主动离场；爆仓是可用资金 ≤ 0 时被系统强制离场，被动结束交易。'],
+  ['30 根 K 线走完还没平仓怎么办？', '系统会自动平仓并结算，自动结束本局。'],
+];
+
+let gStep = 0;
+function paintGuide() {
+  const it = GUIDE[gStep];
+  $('g-num').textContent = `${gStep + 1} / ${GUIDE.length}`;
+  $('g-title').textContent = it.t;
+  $('g-body').innerHTML = it.b;
+  $('g-dots').innerHTML = GUIDE.map((_, i) => `<i class="${i <= gStep ? 'on' : ''}"></i>`).join('');
+  $('g-prev').disabled = gStep === 0;
+  $('g-next').textContent = gStep === GUIDE.length - 1 ? '完成引导 ✓' : '下一步 ▶';
+}
+function openGuide(at = 0) {
+  gStep = at;
+  paintGuide();
+  $('guide').classList.remove('hide');
+}
+$('g-prev').onclick = () => { if (gStep > 0) { gStep--; paintGuide(); } };
+$('g-next').onclick = () => {
+  if (gStep < GUIDE.length - 1) { gStep++; paintGuide(); return; }
+  $('guide').classList.add('hide');
+  S.tutorialDone = true;
+  try { localStorage.setItem('gf_guide_seen', '1'); } catch (e) {}
+  log('✅ 新手引导完成，下单按钮已解锁。');
+  render();
+};
+$('btn-guide').onclick = () => openGuide(0);
+$('btn-guide-start').onclick = () => openGuide(0);
+
+$('fq').innerHTML = FAQ.map(([q, a]) =>
+  `<p style="color:var(--gold);margin-top:10px">Q：${q}</p>
+   <p style="color:var(--dim)">A：${a}</p>`).join('');
+$('btn-faq').onclick = () => $('faq').classList.remove('hide');
+$('btn-faq-close').onclick = () => $('faq').classList.add('hide');
+
+/* 边角小提示轮播 */
+const TIPS = ['杠杆放大收益，也放大风险', '落袋为安，浮盈不是实赚', '看清可用资金，警惕爆仓'];
+let tipIdx = 0;
+setInterval(() => { tipIdx = (tipIdx + 1) % TIPS.length; $('tips').textContent = TIPS[tipIdx]; }, 6000);
 
 /* =========================================================
  * 像素麦穗
@@ -458,7 +684,7 @@ $('btn-auto').onclick = () => {
 };
 
 document.addEventListener('keydown', e => {
-  if (!S.started || S.over) return;
+  if (!S.started || S.over || !S.tutorialDone) return;
   if (e.key === ' ') { e.preventDefault(); tick(); }
   if (e.key === '1') openPos('long');
   if (e.key === '2') openPos('short');
@@ -474,6 +700,7 @@ function startGame() {
   $('start').classList.add('hide');
   GF.track('game_start', S.nick || 'anon');
   log(`欢迎，<b>${S.nick || '匿名农场主'}</b>！初始本金 10000，10倍杠杆，30根K线后结算。`);
+  if (!S.tutorialDone) openGuide(0);
   render();
 }
 $('btn-start').onclick = startGame;
@@ -488,6 +715,10 @@ S.candles.push({ o: 99.1, c: 98.3, h: 100.2, l: 98.0 });
 S.candles.push({ o: 98.3, c: 100.4, h: 100.9, l: 98.1 });
 S.candles.push({ o: 100.4, c: 100.1, h: 101.3, l: 99.6 });
 S.price = 100.1;
+S.openPrice = S.candles[S.candles.length - 1].o;
+try { S.tutorialDone = localStorage.getItem('gf_guide_seen') === '1'; } catch (e) {}
+updateMarquee();
+$('tips').textContent = TIPS[0];
 render();
 </script>
 </body>
