@@ -84,16 +84,30 @@ window.GF_CONFIG = {
     if (!hasBoard()) return { ok: false, local: true };
 
     try {
-      const res = await fetch(base(), {
-        method: 'POST',
-        headers: Object.assign(headers(), { Prefer: 'return=minimal' }),
-        body: JSON.stringify(row),
-      });
-      if (!res.ok) return { ok: false, error: (await res.text()).slice(0, 120) };
-      return { ok: true };
+      let res = await post(row);
+      if (res.ok) return { ok: true };
+
+      let err = (await res.text()).slice(0, 120);
+      if (row.mode && /mode/i.test(err)) {
+        // 表里还没加 mode 列：先保证成绩不丢，退化为不区分模式
+        const fallback = Object.assign({}, row);
+        delete fallback.mode;
+        res = await post(fallback);
+        if (res.ok) return { ok: true, noMode: true };
+        err = (await res.text()).slice(0, 120);
+      }
+      return { ok: false, error: err };
     } catch (e) {
       return { ok: false, error: e.message };
     }
+  }
+
+  function post(body) {
+    return fetch(base(), {
+      method: 'POST',
+      headers: Object.assign(headers(), { Prefer: 'return=minimal' }),
+      body: JSON.stringify(body),
+    });
   }
 
   async function fetchScores(limit) {

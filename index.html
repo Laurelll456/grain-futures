@@ -519,10 +519,13 @@ async function finish(title, desc) {
     blown: title === '爆仓出局',
     trades: S.trades,
     bars: S.bar,
+    mode: S.mode,
   });
 
   if (res.ok) {
-    $('ov-submit').innerHTML = '✅ 成绩已上传，点「看排行榜」查看排名';
+    $('ov-submit').innerHTML = res.noMode
+      ? '✅ 成绩已上传（云端表暂未区分模式，全部计入探索榜）'
+      : '✅ 成绩已上传，点「看排行榜」查看排名';
     return;
   }
   if (res.local) {
